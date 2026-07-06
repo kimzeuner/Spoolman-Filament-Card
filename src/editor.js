@@ -9,29 +9,13 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
   static styles = css`
     .editor {
+      display: grid;
+      gap: 16px;
       padding: 16px;
     }
 
-    .field {
-      margin-bottom: 16px;
-    }
-
-    .field-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 6px;
-    }
-
-    .label {
-      font-size: 14px;
-      font-weight: 500;
-    }
-
     .section-title {
-      margin-top: 24px;
-      margin-bottom: 12px;
+      margin-top: 12px;
       font-size: 16px;
       font-weight: 500;
     }
@@ -40,38 +24,38 @@ class SpoolmanFilamentCardEditor extends LitElement {
       margin-top: 0;
     }
 
+    ha-textfield,
+    ha-select {
+      width: 100%;
+    }
+
     .switch-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
     }
 
-    .switch-label,
-    .sub-label {
-      font-size: 12px;
-      color: var(--secondary-text-color);
-    }
-
-    .sub-label {
-      margin-bottom: 4px;
-    }
-
-    ha-form {
-      display: block;
-      width: 100%;
+    .switch-label {
+      font-size: 14px;
     }
 
     textarea {
       width: 100%;
-      min-height: 76px;
+      min-height: 80px;
       box-sizing: border-box;
-      padding: 8px;
-      border: 1px solid var(--divider-color);
+      padding: 10px;
       border-radius: 4px;
+      border: 1px solid var(--divider-color);
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font: inherit;
       resize: vertical;
+    }
+
+    .hint {
+      color: var(--secondary-text-color);
+      font-size: 12px;
+      margin-bottom: -8px;
     }
   `;
 
@@ -83,259 +67,179 @@ class SpoolmanFilamentCardEditor extends LitElement {
   }
 
   render() {
-    if (!this.hass || !this._config) return html``;
+    if (!this._config) return html``;
 
     return html`
       <div class="editor">
         <div class="section-title">General</div>
 
-        ${this.renderTextForm(
-          this._config.title || "",
-          "Title",
-          value => this.updateSimpleConfigValue("title", value)
-        )}
-
-        ${this.renderSwitch(
-          this._config.hide_archived !== false,
-          "Hide archived spools",
-          checked => this.updateConfig({ hide_archived: checked })
-        )}
+        ${this.renderTextField("title", "Title")}
+        ${this.renderSwitch("hide_archived", "Hide archived spools")}
 
         <div class="section-title">Grouping</div>
 
-        ${this.renderSelect(
-          this._config.group_by || "material",
-          [
-            ["material", "Material"],
-            ["color", "Color"],
-            ["vendor", "Vendor"],
-            ["none", "Don't group"],
-          ],
-          value => this.updateConfig({ group_by: value || "material" })
-        )}
+        ${this.renderSelect("group_by", "Group by", [
+          ["material", "Material"],
+          ["color", "Color"],
+          ["vendor", "Vendor"],
+          ["none", "Don't group"],
+        ])}
 
         ${this._config.group_by !== "none"
           ? html`
-              <div class="field">
-                <div class="field-header">
-                  <div class="label">Group order</div>
-                </div>
-                <div class="sub-label">One entry per line. Empty = automatic sorting.</div>
-                <textarea
-                  .value=${this.groupOrderValue()}
-                  @change=${this.handleGroupOrderChanged}
-                ></textarea>
-              </div>
+              <div class="hint">Group order, one entry per line. Empty = automatic sorting.</div>
+              <textarea
+                .value=${this.groupOrderValue()}
+                @change=${this.handleGroupOrderChanged}
+              ></textarea>
 
-              ${this.renderSelect(
-                this._config.group_sort_by || "name",
-                [
-                  ["name", "Name"],
-                  ["total_remaining_weight", "Total remaining weight"],
-                  ["max_remaining_weight", "Max remaining weight"],
-                  ["spool_count", "Spool count"],
-                ],
-                value => this.updateConfig({ group_sort_by: value || "name" })
-              )}
+              ${this.renderSelect("group_sort_by", "Group sort by", [
+                ["name", "Name"],
+                ["total_remaining_weight", "Total remaining weight"],
+                ["max_remaining_weight", "Max remaining weight"],
+                ["spool_count", "Spool count"],
+              ])}
 
-              ${this.renderSelect(
-                this._config.group_sort_direction || "asc",
-                [
-                  ["asc", "Ascending"],
-                  ["desc", "Descending"],
-                ],
-                value => this.updateConfig({ group_sort_direction: value || "asc" })
-              )}
+              ${this.renderSelect("group_sort_direction", "Group sort direction", [
+                ["asc", "Ascending"],
+                ["desc", "Descending"],
+              ])}
 
-              ${this.renderTextForm(
-                this._config.group_icon || "mdi:printer-3d-nozzle",
-                "Group icon",
-                value => this.updateSimpleConfigValue("group_icon", value)
-              )}
-
-              ${this.renderSwitch(
-                this._config.show_group_title !== false,
-                "Show group title",
-                checked => this.updateConfig({ show_group_title: checked })
-              )}
+              ${this.renderTextField("group_icon", "Group icon")}
+              ${this.renderSwitch("show_group_title", "Show group title")}
             `
           : html``}
 
         <div class="section-title">Sorting</div>
 
-        ${this.renderSelect(
-          this._config.sort_by || "remaining_weight",
-          [
-            ["remaining_weight", "Remaining weight"],
-            ["filament_name", "Filament name"],
-            ["filament_material", "Material"],
-            ["filament_vendor_name", "Vendor"],
-            ["filament_color_hex", "Color"],
-          ],
-          value => this.updateConfig({ sort_by: value || "remaining_weight" })
-        )}
+        ${this.renderSelect("sort_by", "Sort by", [
+          ["remaining_weight", "Remaining weight"],
+          ["filament_name", "Filament name"],
+          ["filament_material", "Material"],
+          ["filament_vendor_name", "Vendor"],
+          ["filament_color_hex", "Color"],
+        ])}
 
-        ${this.renderSelect(
-          this._config.sort_direction || "asc",
-          [
-            ["asc", "Ascending"],
-            ["desc", "Descending"],
-          ],
-          value => this.updateConfig({ sort_direction: value || "asc" })
-        )}
+        ${this.renderSelect("sort_direction", "Sort direction", [
+          ["asc", "Ascending"],
+          ["desc", "Descending"],
+        ])}
 
         <div class="section-title">Appearance</div>
 
-        ${this.renderSelect(
-          this._config.bar_direction || "vertical",
-          [
-            ["vertical", "Vertical"],
-            ["horizontal", "Horizontal"],
-          ],
-          value => {
-            const config = {
-              ...this._config,
-              bar_direction: value || "vertical",
-            };
+        ${this.renderSelect("bar_direction", "Bar direction", [
+          ["vertical", "Vertical"],
+          ["horizontal", "Horizontal"],
+        ])}
 
-            this.normalizePositions(config);
-            this.setAndDispatchConfig(config);
-          }
-        )}
+        ${this.renderSelect("name_position", "Name position", this.namePositionOptions())}
+        ${this.renderSelect("value_position", "Value position", this.valuePositionOptions())}
 
-        ${this.renderSelect(
-          this._config.name_position || "bottom",
-          this.namePositionOptions(),
-          value => this.updateConfig({ name_position: value || "bottom" })
-        )}
-
-        ${this.renderSelect(
-          this._config.value_position || "center",
-          this.valuePositionOptions(),
-          value => this.updateConfig({ value_position: value || "center" })
-        )}
-
-        ${this.renderNumberForm(
-          this._config.max_weight ?? 1000,
-          "Max weight fallback",
-          value => this.updateConfig({ max_weight: Number(value || 1000) })
-        )}
-
-        ${this.renderSwitch(
-          this._config.show_name !== false,
-          "Show name",
-          checked => this.updateConfig({ show_name: checked })
-        )}
-
-        ${this.renderSwitch(
-          this._config.use_filament_color !== false,
-          "Use filament color",
-          checked => this.updateConfig({ use_filament_color: checked })
-        )}
+        ${this.renderNumberField("max_weight", "Max weight fallback")}
+        ${this.renderSwitch("show_name", "Show name")}
+        ${this.renderSwitch("use_filament_color", "Use filament color")}
       </div>
     `;
   }
 
-  renderTextForm(value, label, onChange) {
-    const schema = [
-      {
-        name: "value",
-        selector: {
-          text: {},
-        },
-      },
-    ];
+  renderTextField(key, label) {
+    return html`
+      <ha-textfield
+        label=${label}
+        .value=${this._config[key] ?? DEFAULT_CONFIG[key] ?? ""}
+        @input=${event => this.updateConfigValue(key, event.target.value)}
+      ></ha-textfield>
+    `;
+  }
+
+  renderNumberField(key, label) {
+    return html`
+      <ha-textfield
+        label=${label}
+        type="number"
+        .value=${String(this._config[key] ?? DEFAULT_CONFIG[key] ?? 0)}
+        @input=${event => this.updateConfigValue(key, Number(event.target.value))}
+      ></ha-textfield>
+    `;
+  }
+
+  renderSelect(key, label, options) {
+    const value = this._config[key] ?? DEFAULT_CONFIG[key];
 
     return html`
-      <div class="field">
-        <ha-form
-          .hass=${this.hass}
-          .data=${{ value }}
-          .schema=${schema}
-          .computeLabel=${() => label}
-          @value-changed=${event => {
-            onChange(event.detail.value?.value ?? "");
-          }}
-        ></ha-form>
+      <ha-select
+        label=${label}
+        .value=${value}
+        @selected=${event => this.handleSelectChanged(key, event)}
+        @closed=${event => event.stopPropagation()}
+      >
+        ${options.map(
+          ([optionValue, optionLabel]) => html`
+            <mwc-list-item
+              .value=${optionValue}
+              ?selected=${value === optionValue}
+            >
+              ${optionLabel}
+            </mwc-list-item>
+          `
+        )}
+      </ha-select>
+    `;
+  }
+
+  renderSwitch(key, label) {
+    return html`
+      <div class="switch-row">
+        <ha-switch
+          .checked=${this._config[key] !== false}
+          @change=${event => this.updateConfigValue(key, event.target.checked)}
+        ></ha-switch>
+        <span class="switch-label">${label}</span>
       </div>
     `;
   }
 
-  renderNumberForm(value, label, onChange) {
-    const schema = [
-      {
-        name: "value",
-        selector: {
-          number: {
-            mode: "box",
-            min: 0,
-            step: 1,
-          },
-        },
-      },
-    ];
+  handleSelectChanged(key, event) {
+    const value = event.target.value;
+    if (value === undefined || value === this._config[key]) return;
 
-    return html`
-      <div class="field">
-        <ha-form
-          .hass=${this.hass}
-          .data=${{ value }}
-          .schema=${schema}
-          .computeLabel=${() => label}
-          @value-changed=${event => {
-            onChange(event.detail.value?.value);
-          }}
-        ></ha-form>
-      </div>
-    `;
+    const config = {
+      ...this._config,
+      [key]: value,
+    };
+
+    if (key === "bar_direction") {
+      this.normalizePositions(config);
+    }
+
+    this.setAndDispatchConfig(config);
   }
 
-  renderSelect(value, options, onChange) {
-    const schema = [
-      {
-        name: "value",
-        selector: {
-          select: {
-            mode: "dropdown",
-            options: options.map(([optionValue, label]) => ({
-              value: optionValue,
-              label,
-            })),
-          },
-        },
-      },
-    ];
+  updateConfigValue(key, value) {
+    const config = {
+      ...this._config,
+      [key]: value,
+    };
 
-    return html`
-      <div class="field">
-        <ha-form
-          .hass=${this.hass}
-          .data=${{ value }}
-          .schema=${schema}
-          .computeLabel=${() => ""}
-          @value-changed=${event => {
-            const selectedValue = event.detail.value?.value;
-            if (selectedValue !== undefined && selectedValue !== value) {
-              onChange(selectedValue);
-            }
-          }}
-        ></ha-form>
-      </div>
-    `;
+    this.setAndDispatchConfig(config);
   }
 
-  renderSwitch(checked, label, onChange) {
-    return html`
-      <div class="field">
-        <div class="switch-row">
-          <ha-switch
-            .checked=${checked}
-            @change=${event => onChange(event.target.checked)}
-          ></ha-switch>
-          <span class="switch-label">${label}</span>
-        </div>
-      </div>
-    `;
+  handleGroupOrderChanged(event) {
+    const group_order = event.target.value
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    this.setAndDispatchConfig({
+      ...this._config,
+      group_order,
+    });
+  }
+
+  groupOrderValue() {
+    return Array.isArray(this._config.group_order)
+      ? this._config.group_order.join("\n")
+      : "";
   }
 
   namePositionOptions() {
@@ -366,24 +270,6 @@ class SpoolmanFilamentCardEditor extends LitElement {
         ];
   }
 
-  groupOrderValue() {
-    return Array.isArray(this._config.group_order)
-      ? this._config.group_order.join("\n")
-      : "";
-  }
-
-  handleGroupOrderChanged(event) {
-    const group_order = event.target.value
-      .split("\n")
-      .map(line => line.trim())
-      .filter(Boolean);
-
-    this.setAndDispatchConfig({
-      ...this._config,
-      group_order,
-    });
-  }
-
   normalizePositions(config) {
     if (config.bar_direction === "vertical") {
       if (!["top", "bottom"].includes(config.name_position)) {
@@ -404,26 +290,6 @@ class SpoolmanFilamentCardEditor extends LitElement {
         config.value_position = "center";
       }
     }
-  }
-
-  updateSimpleConfigValue(key, value) {
-    const config = { ...this._config };
-    const cleanValue = value?.trim();
-
-    if (cleanValue) {
-      config[key] = cleanValue;
-    } else {
-      delete config[key];
-    }
-
-    this.setAndDispatchConfig(config);
-  }
-
-  updateConfig(changes) {
-    this.setAndDispatchConfig({
-      ...this._config,
-      ...changes,
-    });
   }
 
   setAndDispatchConfig(config) {
