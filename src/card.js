@@ -44,29 +44,73 @@ class SpoolmanFilamentCard extends HTMLElement {
 
   createSpoolSignature(hass) {
     const preset = this.config?.preset || "spoolman";
-  
-    if (preset === "custom") {
-      return (this.config.custom_entities || [])
+
+    if (preset === "custom_attributes") {
+      return (this.config.custom_attribute_entities || [])
         .map(entity_id => {
           const state = hass.states[entity_id];
           if (!state) return `${entity_id}|missing`;
-  
+
+          const attr = state.attributes || {};
+
           return [
             entity_id,
             state.state,
-            state.attributes?.friendly_name,
-            state.attributes?.color,
+            attr.value,
+            attr.remaining_weight,
+            attr.max_value,
+            attr.max,
+            attr.name,
+            attr.friendly_name,
+            attr.group,
+            attr.material,
+            attr.vendor,
+            attr.color,
+            attr.filament_color_hex,
+            attr.unit,
           ].join("|");
         })
         .sort()
         .join(";");
     }
-  
+
+    if (preset === "custom_entities") {
+      return (this.config.custom_items || [])
+        .map((item, index) => {
+          const entityIds = [
+            item.value_entity,
+            item.max_entity,
+            item.color_entity,
+            item.group_entity,
+            item.vendor_entity,
+            item.name_entity,
+          ].filter(Boolean);
+
+          return [
+            index,
+            item.name,
+            item.group,
+            item.vendor,
+            item.color,
+            item.max,
+            item.max_value,
+            item.unit,
+            ...entityIds.map(entity_id => {
+              const state = hass.states[entity_id];
+              if (!state) return `${entity_id}|missing`;
+              return `${entity_id}|${state.state}|${state.attributes?.friendly_name || ""}`;
+            }),
+          ].join("|");
+        })
+        .sort()
+        .join(";");
+    }
+
     return Object.entries(hass.states)
       .filter(([, state]) => state.attributes?.filament_material)
       .map(([entity_id, state]) => {
         const attr = state.attributes;
-  
+
         return [
           entity_id,
           state.state,
@@ -112,14 +156,18 @@ class SpoolmanFilamentCard extends HTMLElement {
 
   getItems() {
     const preset = this.config.preset || "spoolman";
-  
-    if (preset === "custom") {
-      return this.getCustomItems();
+
+    if (preset === "custom_attributes") {
+      return this.getCustomAttributeItems();
     }
-  
+
+    if (preset === "custom_entities") {
+      return this.getCustomEntityItems();
+    }
+
     return this.getSpoolmanItems();
   }
-  
+
   getSpoolmanItems() {
     return Object.entries(this._hass.states)
       .map(([entity_id, state]) => ({ entity_id, state }))
@@ -127,39 +175,102 @@ class SpoolmanFilamentCard extends HTMLElement {
       .filter(({ state }) => !this.config.hide_archived || state.attributes.archived === false)
       .sort((a, b) => compareItems(this.config, a, b));
   }
-  
-  getCustomItems() {
-    const entities = this.config.custom_entities || [];
-    const maxValue = Number(this.config.custom_max_value || 1000);
-    const unit = this.config.custom_unit || "g";
-  
+
+  getCustomAttributeItems() {
+    const entities = this.config.custom_attribute_entities || [];
+    const defaultMax = Number(this.config.custom_max_value || 1000);
+    const defaultUnit = this.config.custom_unit || "g";
+
     return entities
-      .map(entityId => {
-        const state = this._hass.states[entityId];
-        if (!state) return null;
-  
-        const value = Number(state.state);
+      .map(entity_id => {
+        const source = this._hass.states[entity_id];
+        if (!source) return null;
+
+        const attr = source.attributes || {};
+        const value = Number(attr.value ?? attr.remaining_weight ?? source.state);
         if (Number.isNaN(value)) return null;
-  
-        return {
-          entity_id: entityId,
-          state: {
-            state: String(value),
-            attributes: {
-              friendly_name: state.attributes?.friendly_name || entityId,
-              remaining_weight: value,
-              filament_weight: maxValue,
-              filament_material: "Custom",
-              filament_name: state.attributes?.friendly_name || entityId,
-              filament_color_hex: state.attributes?.color,
-              archived: false,
-              custom_unit: unit,
-            },
-          },
-        };
+
+        return this.createVirtualItem({
+          entity_id,
+          value,
+          max: Number(attr.max_value ?? attr.max ?? defaultMax),
+          name: attr.name || attr.friendly_name || entity_id,
+          group: attr.group || attr.material || "Custom",
+          vendor: attr.vendor || "",
+          color: attr.color || attr.filament_color_hex,
+          unit: attr.unit || defaultUnit,
+        });
       })
       .filter(Boolean)
       .sort((a, b) => compareItems(this.config, a, b));
+  }
+
+  getCustomEntityItems() {
+    const items = this.config.custom_items || [];
+    const defaultMax = Number(this.config.custom_max_value || 1000);
+    const defaultUnit = this.config.custom_unit || "g";
+
+    return items
+      .map((item, index) => {
+        const valueState = this._hass.states[item.value_entity];
+        if (!valueState) return null;
+
+        const value = Number(valueState.state);
+        if (Number.isNaN(value)) return null;
+
+        const max = item.max_entity
+          ? Number(this._hass.states[item.max_entity]?.state ?? defaultMax)
+          : Number(item.max ?? item.max_value ?? defaultMax);
+
+        const color = item.color_entity
+          ? this._hass.states[item.color_entity]?.state
+          : item.color;
+
+        const group = item.group_entity
+          ? this._hass.states[item.group_entity]?.state
+          : item.group;
+
+        const vendor = item.vendor_entity
+          ? this._hass.states[item.vendor_entity]?.state
+          : item.vendor;
+
+        const name = item.name_entity
+          ? this._hass.states[item.name_entity]?.state
+          : item.name;
+
+        return this.createVirtualItem({
+          entity_id: item.value_entity || `custom_item_${index}`,
+          value,
+          max: Number.isNaN(max) ? defaultMax : max,
+          name: name || valueState.attributes?.friendly_name || item.value_entity,
+          group: group || "Custom",
+          vendor: vendor || "",
+          color,
+          unit: item.unit || defaultUnit,
+        });
+      })
+      .filter(Boolean)
+      .sort((a, b) => compareItems(this.config, a, b));
+  }
+
+  createVirtualItem({ entity_id, value, max, name, group, vendor, color, unit }) {
+    return {
+      entity_id,
+      state: {
+        state: String(value),
+        attributes: {
+          friendly_name: name,
+          remaining_weight: value,
+          filament_weight: max,
+          filament_material: group,
+          filament_name: name,
+          filament_vendor_name: vendor,
+          filament_color_hex: color,
+          archived: false,
+          custom_unit: unit,
+        },
+      },
+    };
   }
 
   renderGrouped(items, dynamicMaxWeight) {
