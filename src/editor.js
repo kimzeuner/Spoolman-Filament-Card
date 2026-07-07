@@ -84,7 +84,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
         ${this.renderHint("Choose how filament spools should be grouped.")}
 
         ${this.renderSelect(
-          this._config.group_by || "material",
+          this._config.group_by || "material", "Group by",
           [
             ["material", "Material"],
             ["color", "Color"],
@@ -103,7 +103,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
               ></textarea>
 
               ${this.renderSelect(
-                this._config.group_sort_by || "name",
+                this._config.group_sort_by || "name", "Name",
                 [
                   ["name", "Name"],
                   ["total_remaining_weight", "Total remaining weight"],
@@ -115,7 +115,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
           
 
               ${this.renderSelect(
-                this._config.group_sort_direction || "asc",
+                this._config.group_sort_direction || "asc", "Sort direction",
                 [
                   ["asc", "Ascending"],
                   ["desc", "Descending"],
@@ -131,7 +131,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
         <div class="section-title">Sorting</div>
         ${this.renderHint("Attribute used to sort spools inside each group.")}
         ${this.renderSelect(
-          this._config.sort_by || "remaining_weight",
+          this._config.sort_by || "remaining_weight", "Sort by",
           [
             ["remaining_weight", "Remaining weight"],
             ["filament_name", "Filament name"],
@@ -143,7 +143,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
         )}
 
         ${this.renderSelect(
-          this._config.sort_direction || "asc",
+          this._config.sort_direction || "asc", "Sort direction",
           [
             ["asc", "Ascending"],
             ["desc", "Descending"],
@@ -154,7 +154,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
         <div class="section-title">Appearance</div>
         ${this.renderHint("Choose whether filament levels are shown vertically or horizontally.")}
         ${this.renderSelect(
-          this._config.bar_direction || "vertical",
+          this._config.bar_direction || "vertical", "Bar direction",
           [
             ["vertical", "Vertical"],
             ["horizontal", "Horizontal"],
@@ -171,13 +171,13 @@ class SpoolmanFilamentCardEditor extends LitElement {
         )}
         ${this.renderHint("Position of the filament name relative to the bar.")}
         ${this.renderSelect(
-          this._config.name_position || "bottom",
+          this._config.name_position || "bottom", "Name position",
           this.namePositionOptions(),
           value => this.updateConfigValue("name_position", value)
         )}
         ${this.renderHint("Position of the remaining weight value inside the bar.")}
         ${this.renderSelect(
-          this._config.value_position || "center",
+          this._config.value_position || "center", "Value position",
           this.valuePositionOptions(),
           value => this.updateConfigValue("value_position", value)
         )}
@@ -250,7 +250,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
     `;
   }
 
-  renderSelect(value, options, onChange) {
+  renderSelect(value, label, options, onChange) {
     const schema = [
       {
         name: "value",
@@ -271,7 +271,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
         .hass=${this.hass}
         .data=${{ value }}
         .schema=${schema}
-        .computeLabel=${() => ""}
+        .computeLabel=${() => label}
         @value-changed=${event => {
           const selectedValue = event.detail.value?.value;
           if (selectedValue !== undefined && selectedValue !== value) {
