@@ -43,6 +43,25 @@ class SpoolmanFilamentCard extends HTMLElement {
   }
 
   createSpoolSignature(hass) {
+    const preset = this.config?.preset || "spoolman";
+  
+    if (preset === "custom") {
+      return (this.config.custom_entities || [])
+        .map(entity_id => {
+          const state = hass.states[entity_id];
+          if (!state) return `${entity_id}|missing`;
+  
+          return [
+            entity_id,
+            state.state,
+            state.attributes?.friendly_name,
+            state.attributes?.color,
+          ].join("|");
+        })
+        .sort()
+        .join(";");
+    }
+  
     return Object.entries(hass.states)
       .filter(([, state]) => state.attributes?.filament_material)
       .map(([entity_id, state]) => {
@@ -67,11 +86,7 @@ class SpoolmanFilamentCard extends HTMLElement {
   render() {
     if (!this._hass || !this.config) return;
 
-    const items = Object.entries(this._hass.states)
-      .map(([entity_id, state]) => ({ entity_id, state }))
-      .filter(({ state }) => state.attributes?.filament_material)
-      .filter(({ state }) => !this.config.hide_archived || state.attributes.archived === false)
-      .sort((a, b) => compareItems(this.config, a, b));
+    const items = this.getItems();
 
     const dynamicMaxWeight = Math.max(
       ...items.map(item =>
@@ -93,6 +108,58 @@ class SpoolmanFilamentCard extends HTMLElement {
         ${content}
       </ha-card>
     `;
+  }
+
+  getItems() {
+    const preset = this.config.preset || "spoolman";
+  
+    if (preset === "custom") {
+      return this.getCustomItems();
+    }
+  
+    return this.getSpoolmanItems();
+  }
+  
+  getSpoolmanItems() {
+    return Object.entries(this._hass.states)
+      .map(([entity_id, state]) => ({ entity_id, state }))
+      .filter(({ state }) => state.attributes?.filament_material)
+      .filter(({ state }) => !this.config.hide_archived || state.attributes.archived === false)
+      .sort((a, b) => compareItems(this.config, a, b));
+  }
+  
+  getCustomItems() {
+    const entities = this.config.custom_entities || [];
+    const maxValue = Number(this.config.custom_max_value || 1000);
+    const unit = this.config.custom_unit || "g";
+  
+    return entities
+      .map(entityId => {
+        const state = this._hass.states[entityId];
+        if (!state) return null;
+  
+        const value = Number(state.state);
+        if (Number.isNaN(value)) return null;
+  
+        return {
+          entity_id: entityId,
+          state: {
+            state: String(value),
+            attributes: {
+              friendly_name: state.attributes?.friendly_name || entityId,
+              remaining_weight: value,
+              filament_weight: maxValue,
+              filament_material: "Custom",
+              filament_name: state.attributes?.friendly_name || entityId,
+              filament_color_hex: state.attributes?.color,
+              archived: false,
+              custom_unit: unit,
+            },
+          },
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => compareItems(this.config, a, b));
   }
 
   renderGrouped(items, dynamicMaxWeight) {
@@ -160,7 +227,7 @@ class SpoolmanFilamentCard extends HTMLElement {
 
         <div class="bar">
           <div class="fill" style="${getFillStyle(this.config, percent, color)}"></div>
-          <div class="value" style="color:${valueTextColor};">${weight.toFixed(1)}g</div>
+          <div class="value" style="color:${valueTextColor};">${weight.toFixed(1)}${attr.custom_unit || "g"}</div>
         </div>
 
         ${
