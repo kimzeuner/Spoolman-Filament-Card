@@ -77,6 +77,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
             ["spoolman", "Spoolman"],
             ["custom_attributes", "Custom: Attributes"],
             ["custom_entities", "Custom: Multiple entities"],
+            ["custom_label", "Custom: HA Label"],
           ],
           value => this.updateConfigValue("preset", value)
         )}
@@ -88,6 +89,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
         ${preset === "spoolman" ? this.renderSpoolmanOptions() : ""}
         ${preset === "custom_attributes" ? this.renderCustomAttributeOptions() : ""}
         ${preset === "custom_entities" ? this.renderCustomEntityOptions() : ""}
+        ${preset === "custom_label" ? this.renderCustomLabelOptions() : ""}
         
         <div class="section-title">Appearance</div>
         
@@ -208,21 +210,88 @@ class SpoolmanFilamentCardEditor extends LitElement {
     `;
   }
 
+  renderLabelPicker(value, label, onChange) {
+    const schema = [
+      {
+        name: "value",
+        selector: {
+          label: {},
+        },
+      },
+    ];
+  
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${{ value }}
+        .schema=${schema}
+        .computeLabel=${() => label}
+        @value-changed=${event => {
+          onChange(event.detail.value?.value || "");
+        }}
+      ></ha-form>
+    `;
+  }
+
+  renderCustomLabelOptions() {
+    return html`
+      <div class="section-title">Custom HA Label</div>
+  
+      ${this.renderLabelPicker(
+        this._config.custom_label_id || "",
+        "HA Label",
+        value => this.updateConfigValue("custom_label_id", value)
+      )}
+  
+      ${this.renderTextForm(
+        this._config.custom_max_value ?? 1000,
+        "Default max value",
+        value => this.updateConfigValue("custom_max_value", Number(value))
+      )}
+  
+      ${this.renderTextForm(
+        this._config.custom_unit || "g",
+        "Default unit",
+        value => this.updateConfigValue("custom_unit", value)
+      )}
+  
+      ${this.renderCustomSharedOptions()}
+    `;
+  }
+
+  renderEntityPicker(value, label, onChange) {
+    const schema = [
+      {
+        name: "value",
+        selector: {
+          entity: {
+            multiple: true,
+          },
+        },
+      },
+    ];
+  
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${{ value }}
+        .schema=${schema}
+        .computeLabel=${() => label}
+        @value-changed=${event => {
+          onChange(event.detail.value?.value || []);
+        }}
+      ></ha-form>
+    `;
+  }
+
   renderCustomAttributeOptions() {
     return html`
       <div class="section-title">Custom Attributes</div>
 
-      ${this.renderTextArea(
-        (this._config.custom_attribute_entities || []).join("\n"),
+      ${this.renderEntityPicker(
+        this._config.custom_attribute_entities || [],
         "Entities with attributes",
-        value =>
-          this.updateConfigValue(
-            "custom_attribute_entities",
-            value
-              .split("\n")
-              .map(v => v.trim())
-              .filter(Boolean)
-          )
+        value => this.updateConfigValue("custom_attribute_entities", value)
       )}
 
       ${this.renderTextForm(
