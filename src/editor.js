@@ -165,26 +165,24 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
   renderSelect(key, label, options) {
     const value = this._config[key] ?? DEFAULT_CONFIG[key];
-    const selectedLabel = options.find(([optionValue]) => optionValue === value)?.[1] ?? value;
+    const selectedIndex = options.findIndex(([optionValue]) => optionValue === value);
   
     return html`
       <ha-select
         label=${label}
         .value=${value}
-        .label=${label}
-        .fixedMenuPosition=${true}
-        @change=${event => this.handleSelectChanged(key, event)}
-        @selected=${event => this.handleSelectChanged(key, event)}
+        .selected=${selectedIndex >= 0 ? selectedIndex : 0}
+        @selected=${event => {
+          const item = event.detail?.item;
+          const selectedValue = item?.value ?? item?.getAttribute?.("value");
+          if (selectedValue !== undefined && selectedValue !== null) {
+            this.handleSelectChanged(key, selectedValue);
+          }
+        }}
         @closed=${event => event.stopPropagation()}
       >
-        <mwc-list-item .value=${value} selected>${selectedLabel}</mwc-list-item>
-  
         ${options.map(
           ([optionValue, optionLabel]) => html`
-            <mwc-list-item
-              .value=${optionValue}
-              ?selected=${value === optionValue}
-            >
               ${optionLabel}
             </mwc-list-item>
           `
@@ -205,10 +203,8 @@ class SpoolmanFilamentCardEditor extends LitElement {
     `;
   }
 
-  handleSelectChanged(key, event) {
-    const value = event.target.value;
-  
-    if (value === undefined || value === null) return;
+  handleSelectChanged(key, value) {
+    if (value === undefined || value === null || value === this._config[key]) return;
   
     const config = {
       ...this._config,
