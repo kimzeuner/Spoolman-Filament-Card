@@ -170,14 +170,21 @@ class SpoolmanFilamentCardEditor extends LitElement {
       <ha-select
         label=${label}
         .value=${value}
-        @value-changed=${event => this.handleSelectChanged(key, event.detail.value)}
+        @selected=${event => {
+          const index = event.detail?.index;
+          const selectedValue = options[index]?.[0];
+  
+          if (selectedValue !== undefined) {
+            this.handleSelectChanged(key, selectedValue);
+          }
+        }}
         @closed=${event => event.stopPropagation()}
       >
         ${options.map(
           ([optionValue, optionLabel]) => html`
             <mwc-list-item
-              .value=${optionValue}
               value=${optionValue}
+              ?selected=${value === optionValue}
             >
               ${optionLabel}
             </mwc-list-item>
