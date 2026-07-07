@@ -33,7 +33,15 @@ class SpoolmanFilamentCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    this.render();
+  
+    if (this._renderScheduled) return;
+  
+    this._renderScheduled = true;
+  
+    requestAnimationFrame(() => {
+      this._renderScheduled = false;
+      this.render();
+    });
   }
 
   render() {
