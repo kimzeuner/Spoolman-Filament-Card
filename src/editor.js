@@ -52,13 +52,6 @@ class SpoolmanFilamentCardEditor extends LitElement {
       resize: vertical;
     }
 
-    .hint {
-      color: var(--secondary-text-color);
-      font-size: 12px;
-      line-height: 1.4;
-      margin-top: -8px;
-      margin-bottom: -4px;
-    }
   `;
 
   setConfig(config) {
@@ -80,8 +73,6 @@ class SpoolmanFilamentCardEditor extends LitElement {
         
 
         <div class="section-title">Grouping</div>
-
-        ${this.renderHint("Choose how filament spools should be grouped.")}
 
         ${this.renderSelect(
           this._config.group_by || "material", "Group by",
@@ -122,14 +113,12 @@ class SpoolmanFilamentCardEditor extends LitElement {
                 ],
                 value => this.updateConfigValue("group_sort_direction", value)
               )}
-              ${this.renderHint("Any Home Assistant icon. Use 'none' to hide the icon.")}
               ${this.renderTextField("group_icon", "Group icon")}
               ${this.renderSwitch("show_group_title", "Show group title")}
             `
           : html``}
 
         <div class="section-title">Sorting</div>
-        ${this.renderHint("Attribute used to sort spools inside each group.")}
         ${this.renderSelect(
           this._config.sort_by || "remaining_weight", "Sort by",
           [
@@ -152,7 +141,6 @@ class SpoolmanFilamentCardEditor extends LitElement {
         )}
 
         <div class="section-title">Appearance</div>
-        ${this.renderHint("Choose whether filament levels are shown vertically or horizontally.")}
         ${this.renderSelect(
           this._config.bar_direction || "vertical", "Bar direction",
           [
@@ -169,22 +157,22 @@ class SpoolmanFilamentCardEditor extends LitElement {
             this.setAndDispatchConfig(config);
           }
         )}
-        ${this.renderHint("Position of the filament name relative to the bar.")}
+
         ${this.renderSelect(
           this._config.name_position || "bottom", "Name position",
           this.namePositionOptions(),
           value => this.updateConfigValue("name_position", value)
         )}
-        ${this.renderHint("Position of the remaining weight value inside the bar.")}
+
         ${this.renderSelect(
           this._config.value_position || "center", "Value position",
           this.valuePositionOptions(),
           value => this.updateConfigValue("value_position", value)
         )}
-        ${this.renderHint("Used only if the spool does not provide its own filament weight.")}
+
         ${this.renderNumberField("max_weight", "Max weight fallback")}
         ${this.renderSwitch("show_name", "Show name")}
-        ${this.renderHint("Use the configured filament color instead of the Home Assistant theme color.")}
+
         ${this.renderSwitch("use_filament_color", "Use filament color")}
       </div>
     `;
