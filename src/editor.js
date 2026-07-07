@@ -78,12 +78,16 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
         <div class="section-title">Grouping</div>
 
-        ${this.renderSelect("group_by", "Group by", [
-          ["material", "Material"],
-          ["color", "Color"],
-          ["vendor", "Vendor"],
-          ["none", "Don't group"],
-        ])}
+        ${this.renderSelect(
+          this._config.group_by || "material",
+          [
+            ["material", "Material"],
+            ["color", "Color"],
+            ["vendor", "Vendor"],
+            ["none", "Don't group"],
+          ],
+          value => this.updateConfigValue("group_by", value)
+        )}
 
         ${this._config.group_by !== "none"
           ? html`
@@ -93,17 +97,26 @@ class SpoolmanFilamentCardEditor extends LitElement {
                 @input=${this.handleGroupOrderChanged}
               ></textarea>
 
-              ${this.renderSelect("group_sort_by", "Group sort by", [
-                ["name", "Name"],
-                ["total_remaining_weight", "Total remaining weight"],
-                ["max_remaining_weight", "Max remaining weight"],
-                ["spool_count", "Spool count"],
-              ])}
+              ${this.renderSelect(
+                this._config.group_sort_by || "name",
+                [
+                  ["name", "Name"],
+                  ["total_remaining_weight", "Total remaining weight"],
+                  ["max_remaining_weight", "Max remaining weight"],
+                  ["spool_count", "Spool count"],
+                ],
+                value => this.updateConfigValue("group_sort_by", value)
+              )}
+          
 
-              ${this.renderSelect("group_sort_direction", "Group sort direction", [
-                ["asc", "Ascending"],
-                ["desc", "Descending"],
-              ])}
+              ${this.renderSelect(
+                this._config.group_sort_direction || "asc",
+                [
+                  ["asc", "Ascending"],
+                  ["desc", "Descending"],
+                ],
+                value => this.updateConfigValue("group_sort_direction", value)
+              )}
 
               ${this.renderTextField("group_icon", "Group icon")}
               ${this.renderSwitch("show_group_title", "Show group title")}
@@ -112,28 +125,56 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
         <div class="section-title">Sorting</div>
 
-        ${this.renderSelect("sort_by", "Sort by", [
-          ["remaining_weight", "Remaining weight"],
-          ["filament_name", "Filament name"],
-          ["filament_material", "Material"],
-          ["filament_vendor_name", "Vendor"],
-          ["filament_color_hex", "Color"],
-        ])}
+        ${this.renderSelect(
+          this._config.sort_by || "remaining_weight",
+          [
+            ["remaining_weight", "Remaining weight"],
+            ["filament_name", "Filament name"],
+            ["filament_material", "Material"],
+            ["filament_vendor_name", "Vendor"],
+            ["filament_color_hex", "Color"],
+          ],
+          value => this.updateConfigValue("sort_by", value)
+        )}
 
-        ${this.renderSelect("sort_direction", "Sort direction", [
-          ["asc", "Ascending"],
-          ["desc", "Descending"],
-        ])}
+        ${this.renderSelect(
+          this._config.sort_direction || "asc",
+          [
+            ["asc", "Ascending"],
+            ["desc", "Descending"],
+          ],
+          value => this.updateConfigValue("sort_direction", value)
+        )}
 
         <div class="section-title">Appearance</div>
 
-        ${this.renderSelect("bar_direction", "Bar direction", [
-          ["vertical", "Vertical"],
-          ["horizontal", "Horizontal"],
-        ])}
+        ${this.renderSelect(
+          this._config.bar_direction || "vertical",
+          [
+            ["vertical", "Vertical"],
+            ["horizontal", "Horizontal"],
+          ],
+          value => {
+            const config = {
+              ...this._config,
+              bar_direction: value,
+            };
+        
+            this.normalizePositions(config);
+            this.setAndDispatchConfig(config);
+          }
+        )}
 
-        ${this.renderSelect("name_position", "Name position", this.namePositionOptions())}
-        ${this.renderSelect("value_position", "Value position", this.valuePositionOptions())}
+        ${this.renderSelect(
+          this._config.name_position || "bottom",
+          this.namePositionOptions(),
+          value => this.updateConfigValue("name_position", value)
+        )}
+        ${this.renderSelect(
+          this._config.value_position || "center",
+          this.valuePositionOptions(),
+          value => this.updateConfigValue("value_position", value)
+        )}
 
         ${this.renderNumberField("max_weight", "Max weight fallback")}
         ${this.renderSwitch("show_name", "Show name")}
@@ -163,34 +204,58 @@ class SpoolmanFilamentCardEditor extends LitElement {
     `;
   }
 
-  renderSelect(key, label, options) {
-    const value = this._config[key] ?? DEFAULT_CONFIG[key];
+  renderTextForm(value, label, onChange) {
+    const schema = [
+      {
+        name: "value",
+        selector: {
+          text: {},
+        },
+      },
+    ];
   
     return html`
-      <ha-select
-        label=${label}
-        .value=${value}
-        @selected=${event => {
-          const index = event.detail?.index;
-          const selectedValue = options[index]?.[0];
+      <ha-form
+        .hass=${this.hass}
+        .data=${{ value }}
+        .schema=${schema}
+        .computeLabel=${() => label}
+        @value-changed=${event => {
+          onChange(event.detail.value?.value ?? "");
+        }}
+      ></ha-form>
+    `;
+  }
+
+  renderSelect(value, options, onChange) {
+    const schema = [
+      {
+        name: "value",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: options.map(([optionValue, label]) => ({
+              value: optionValue,
+              label,
+            })),
+          },
+        },
+      },
+    ];
   
-          if (selectedValue !== undefined) {
-            this.handleSelectChanged(key, selectedValue);
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${{ value }}
+        .schema=${schema}
+        .computeLabel=${() => ""}
+        @value-changed=${event => {
+          const selectedValue = event.detail.value?.value;
+          if (selectedValue !== undefined && selectedValue !== value) {
+            onChange(selectedValue);
           }
         }}
-        @closed=${event => event.stopPropagation()}
-      >
-        ${options.map(
-          ([optionValue, optionLabel]) => html`
-            <mwc-list-item
-              value=${optionValue}
-              ?selected=${value === optionValue}
-            >
-              ${optionLabel}
-            </mwc-list-item>
-          `
-        )}
-      </ha-select>
+      ></ha-form>
     `;
   }
 
