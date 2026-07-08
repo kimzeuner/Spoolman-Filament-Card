@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG = {
   name_position: "bottom",
   show_name: true,
   show_group_title: true,
+  show_group_icon: true,
   value_position: "center",
   use_filament_color: true,
 
