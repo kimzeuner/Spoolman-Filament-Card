@@ -1,6 +1,6 @@
 export const CARD_VERSION = "0.1.0";
-export const CARD_TYPE = "spoolman-filament-card";
-export const EDITOR_TYPE = "spoolman-filament-card-editor";
+export const CARD_TYPE = "filament-card";
+export const EDITOR_TYPE = "filament-card-editor";
 
 export const DEFAULT_CONFIG = {
   title: "Filament",
