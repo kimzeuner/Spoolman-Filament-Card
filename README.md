@@ -1,4 +1,4 @@
-# Spoolman Filament Card
+# Filament Card
 
 A modern and highly configurable Home Assistant Lovelace card to visualize your **Spoolman filament inventory**.
 
