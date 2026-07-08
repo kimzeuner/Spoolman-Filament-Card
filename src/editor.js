@@ -128,7 +128,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
             ["custom_entities", "Custom: Multiple entities"],
             ["custom_label", "Custom: HA Label"],
           ],
-          value => this.updateConfigValue("preset", value)
+          value => this.updatePreset(value)
         )}
         ${this.renderTextField("title", "Title")}
         
@@ -176,6 +176,30 @@ class SpoolmanFilamentCardEditor extends LitElement {
     `;
   }
 
+  updatePreset(preset) {
+    const config = {
+      ...this._config,
+      preset,
+    };
+  
+    if (preset === "spoolman") {
+      delete config.custom_attribute_entities;
+      delete config.custom_items;
+      delete config.custom_max_value;
+      delete config.custom_unit;
+    }
+  
+    if (preset === "custom_attributes") {
+      delete config.custom_items;
+    }
+  
+    if (preset === "custom_entities") {
+      delete config.custom_attribute_entities;
+    }
+  
+    this.setAndDispatchConfig(config);
+  }
+  
   renderSpoolmanOptions() {
     return html`
       <div class="section-title">Grouping</div>
@@ -222,7 +246,11 @@ class SpoolmanFilamentCardEditor extends LitElement {
               value => this.updateConfigValue("group_sort_direction", value)
             )}
 
-            ${this.renderTextField("group_icon", "Group icon")}
+            ${this.renderIconPicker(
+              this._config.group_icon || "mdi:printer-3d-nozzle",
+              "Group icon",
+              value => this.updateConfigValue("group_icon", value)
+            )}
             ${this.renderSwitch("show_group_title", "Show group title")}
           `
         : html``}
@@ -403,7 +431,11 @@ class SpoolmanFilamentCardEditor extends LitElement {
               value => this.updateConfigValue("group_sort_direction", value)
             )}
 
-            ${this.renderTextField("group_icon", "Group icon")}
+            ${this.renderIconPicker(
+              this._config.group_icon || "mdi:printer-3d-nozzle",
+              "Group icon",
+              value => this.updateConfigValue("group_icon", value)
+            )}
             ${this.renderSwitch("show_group_title", "Show group title")}
           `
         : html``}
@@ -437,6 +469,29 @@ class SpoolmanFilamentCardEditor extends LitElement {
     `;
   }
 
+  renderIconPicker(value, label, onChange) {
+    const schema = [
+      {
+        name: "value",
+        selector: {
+          icon: {},
+        },
+      },
+    ];
+  
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${{ value }}
+        .schema=${schema}
+        .computeLabel=${() => label}
+        @value-changed=${event => {
+          onChange(event.detail.value?.value || "");
+        }}
+      ></ha-form>
+    `;
+  }
+  
   renderHint(text) {
     return html`
       <div class="hint">${text}</div>
