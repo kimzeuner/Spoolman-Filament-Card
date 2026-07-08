@@ -1,6 +1,6 @@
 {
-  "name": "Spoolman Filament Card",
-  "filename": "spoolman-filament-card.js",
+  "name": "Filament Card",
+  "filename": "filament-card.js",
   "render_readme": true,
   "homeassistant": "2025.1.0"
 }
