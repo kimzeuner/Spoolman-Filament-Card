@@ -15,7 +15,7 @@ Custom](https://img.shields.io/badge/HACS-Custom-orange?style=for-the-badge)](ht
 [![License](https://img.shields.io/github/license/kimzeuner/Filament-Card?style=for-the-badge)](https://github.com/kimzeuner/Filament-Card/blob/main/LICENSE)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/KZeuner)
 
-![Preview](images/preview.png)
+![Preview](images/grouped_material_horizontal.png) ![Preview](images/grouped_material_vertical.png)
 
 ------------------------------------------------------------------------
 
