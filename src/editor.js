@@ -1,5 +1,13 @@
 import { LitElement, html, css } from "lit";
 import { DEFAULT_CONFIG, EDITOR_TYPE } from "./const.js";
+const ACTION_OPTIONS = [
+  ["more-info", "More info"],
+  ["navigate", "Navigate"],
+  ["url", "URL"],
+  ["call-service", "Call service"],
+  ["assist", "Assist"],
+  ["none", "None"],
+];
 
 class SpoolmanFilamentCardEditor extends LitElement {
   static properties = {
@@ -483,7 +491,132 @@ class SpoolmanFilamentCardEditor extends LitElement {
       )}
 
       ${this.renderSwitch("show_name", "Show name")}
+
+      ${this.renderActionOptions()}
     `;
+  }
+
+  renderActionOptions() {
+    return html`
+      <div class="section-title">Actions</div>
+  
+      ${this.renderActionSelect("tap_action", "Tap action", "more-info")}
+      ${this.renderActionSelect("double_tap_action", "Double tap action", "none")}
+      ${this.renderActionSelect("hold_action", "Hold action", "none")}
+    `;
+  }
+  
+  renderActionSelect(configKey, label, defaultAction) {
+    const actionConfig = this._config[configKey] || {};
+    const action = actionConfig.action || defaultAction;
+  
+    return html`
+      ${this.renderSelect(
+        action,
+        label,
+        ACTION_OPTIONS,
+        value => {
+          const actionConfig = { action: value };
+        
+          if (value === "assist") {
+            actionConfig.pipeline_id = "preferred";
+            actionConfig.start_listening = true;
+          }
+        
+          this.updateConfigValue(configKey, actionConfig);
+        }
+      )}
+  
+      ${this.renderActionExtraFields(configKey, actionConfig, action)}
+    `;
+  }
+  
+  renderActionExtraFields(configKey, actionConfig, action) {
+    if (action === "navigate") {
+      return this.renderTextForm(
+        actionConfig.navigation_path || "",
+        "Navigation path",
+        value => this.updateActionConfigValue(configKey, "navigation_path", value)
+      );
+    }
+  
+    if (action === "url") {
+      return this.renderTextForm(
+        actionConfig.url_path || "",
+        "URL path",
+        value => this.updateActionConfigValue(configKey, "url_path", value)
+      );
+    }
+  
+    if (action === "call-service") {
+      return html`
+        <div class="hint">Service</div>
+  
+        <ha-service-picker
+          .hass=${this.hass}
+          .value=${actionConfig.service || ""}
+          @value-changed=${event =>
+            this.updateActionConfigValue(configKey, "service", event.detail.value)}
+        ></ha-service-picker>
+  
+        <div class="hint">Target entity</div>
+  
+        <ha-entity-picker
+          .hass=${this.hass}
+          .value=${actionConfig.target?.entity_id || ""}
+          @value-changed=${event =>
+            this.updateActionTargetEntity(configKey, event.detail.value)}
+        ></ha-entity-picker>
+      `;
+    }
+    if (action === "assist") {
+      return html`
+        ${this.renderTextForm(
+          actionConfig.pipeline_id || "preferred",
+          "Pipeline ID",
+          value => this.updateActionConfigValue(configKey, "pipeline_id", value)
+        )}
+    
+        ${this.renderSwitchValue(
+          actionConfig.start_listening !== false,
+          "Start listening",
+          value => this.updateActionConfigValue(configKey, "start_listening", value)
+        )}
+      `;
+    }
+    return html``;
+  }
+  
+  updateActionConfigValue(configKey, field, value) {
+    const config = { ...this._config };
+    const actionConfig = { ...(config[configKey] || {}) };
+    const cleanValue = typeof value === "string" ? value.trim() : value;
+  
+    if (cleanValue) {
+      actionConfig[field] = cleanValue;
+    } else {
+      delete actionConfig[field];
+    }
+  
+    config[configKey] = actionConfig;
+    this.setAndDispatchConfig(config);
+  }
+  
+  updateActionTargetEntity(configKey, entityId) {
+    const config = { ...this._config };
+    const actionConfig = { ...(config[configKey] || {}) };
+  
+    if (entityId) {
+      actionConfig.target = {
+        ...(actionConfig.target || {}),
+        entity_id: entityId,
+      };
+    } else {
+      delete actionConfig.target;
+    }
+  
+    config[configKey] = actionConfig;
+    this.setAndDispatchConfig(config);
   }
 
   renderPresetHint(preset) {
