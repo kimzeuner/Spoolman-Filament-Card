@@ -1,4 +1,17 @@
+<table>
+<tr>
+<td width="140">
+
+<img src="https://raw.githubusercontent.com/kimzeuner/Filament-Card/main/images/icon.png" width="140" alt="Filament Card">
+
+</td>
+<td>
+
 # Filament Card
+
+</td>
+</tr>
+</table>
 
 A modern and highly configurable Home Assistant Lovelace card for
 visualizing **filament**, **consumables**, and other resource-based
