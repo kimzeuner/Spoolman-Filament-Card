@@ -106,6 +106,40 @@ class SpoolmanFilamentCard extends HTMLElement {
         .join(";");
     }
 
+    if (preset === "custom_label") {
+      const labelId = this.config.custom_label_id;
+    
+      if (!labelId || !hass.entities) return "";
+    
+      return Object.entries(hass.entities)
+        .filter(([, entity]) => entity.labels?.includes(labelId))
+        .map(([entityId]) => {
+          const state = hass.states[entityId];
+          if (!state) return `${entityId}|missing`;
+    
+          const attr = state.attributes || {};
+    
+          return [
+            entityId,
+            state.state,
+            attr.value,
+            attr.remaining_weight,
+            attr.max_value,
+            attr.max,
+            attr.name,
+            attr.friendly_name,
+            attr.group,
+            attr.material,
+            attr.vendor,
+            attr.color,
+            attr.filament_color_hex,
+            attr.unit,
+          ].join("|");
+        })
+        .sort()
+        .join(";");
+    }
+    
     return Object.entries(hass.states)
       .filter(([, state]) => state.attributes?.filament_material)
       .map(([entity_id, state]) => {
@@ -445,4 +479,6 @@ class SpoolmanFilamentCard extends HTMLElement {
   }
 }
 
-customElements.define(CARD_TYPE, SpoolmanFilamentCard);
+if (!customElements.get(CARD_TYPE)) {
+  customElements.define(CARD_TYPE, SpoolmanFilamentCard);
+}
