@@ -191,6 +191,7 @@ class FilamentCard extends HTMLElement {
       </ha-card>
     `;
     this.attachActionHandlers();
+    this.attachGroupTitleActionHandlers();
   }
 
   getItems() {
@@ -370,6 +371,32 @@ class FilamentCard extends HTMLElement {
     );
   }
 
+  attachGroupTitleActionHandlers() {
+    this.shadowRoot.querySelectorAll(".heading[data-group]").forEach(element => {
+      const group = element.dataset.group;
+      if (!group) return;
+  
+      const actionConfigs = this.getGroupTitleActionConfigs(group);
+  
+      element.addEventListener("click", event => {
+        event.stopPropagation();
+        this.handleTap(group, actionConfigs);
+      });
+  
+      element.addEventListener("dblclick", event => {
+        event.stopPropagation();
+        this.handleDoubleTap(group, actionConfigs);
+      });
+  
+      element.addEventListener("pointerdown", () =>
+        this.handleHoldStart(group, actionConfigs)
+      );
+      element.addEventListener("pointerup", () => this.handleHoldEnd());
+      element.addEventListener("pointerleave", () => this.handleHoldEnd());
+      element.addEventListener("pointercancel", () => this.handleHoldEnd());
+    });
+  }
+
   createVirtualItem({
     entity_id,
     value,
@@ -493,24 +520,26 @@ class FilamentCard extends HTMLElement {
     groups = sortGroups(this.config, groups, items);
 
     return groups.map(group => {
+      const groupIcon = this.getGroupTitleIcon(group);
+      const groupColor = this.getGroupTitleColor(group);
+      const groupActionConfigs = this.getGroupTitleActionConfigs(group);
       const groupItems = items.filter(item => getGroupValue(this.config, item) === group);
       if (!groupItems.length) return "";
 
       return `
         ${this.config.show_group_title ? `
-          <div class="heading">
+          <div
+            class="heading clickable"
+            data-group="${group}"
+          >
             ${
-              this.getGroupIcon(group) !== "none"
-                ? `<ha-icon icon="${this.getGroupIcon(group)}"></ha-icon>`
+              groupIcon !== "none"
+                ? `<ha-icon icon="${groupIcon}"></ha-icon>`
                 : ""
             }
-            <span
-              ${
-                this.getGroupColor(group)
-                  ? `style="color:${this.getGroupColor(group)};"`
-                  : ""
-              }
-            >${group}</span>
+            <span ${groupColor ? `style="color:${groupColor};"` : ""}>
+              ${group}
+            </span>
           </div>
         ` : ""}
 
