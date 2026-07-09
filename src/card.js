@@ -325,15 +325,15 @@ class FilamentCard extends HTMLElement {
     };
   }
 
-  fireHassAction(entityId, action) {
+  fireHassAction(entityId, actionConfigs, action) {
     this.dispatchEvent(
       new CustomEvent("hass-action", {
         detail: {
           config: {
             entity: entityId,
-            tap_action: this.config.tap_action || { action: "more-info" },
-            double_tap_action: this.config.double_tap_action || { action: "none" },
-            hold_action: this.config.hold_action || { action: "none" },
+            tap_action: actionConfigs.tap || { action: "more-info" },
+            double_tap_action: actionConfigs.double_tap || { action: "none" },
+            hold_action: actionConfigs.hold || { action: "none" },
           },
           action,
         },
