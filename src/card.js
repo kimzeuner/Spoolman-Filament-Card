@@ -166,6 +166,10 @@ class FilamentCard extends HTMLElement {
 
     const items = this.getItems();
 
+    this._actionConfigsByEntity = Object.fromEntries(
+      items.map(item => [item.entity_id, this.getActionConfigsForItem(item)])
+    );
+
     const dynamicMaxWeight = Math.max(
       ...items.map(item =>
         Number(item.state.attributes.filament_weight || item.state.attributes.remaining_weight || 0)
@@ -238,6 +242,9 @@ class FilamentCard extends HTMLElement {
           vendor: attr.vendor || "",
           color: attr.color || attr.filament_color_hex,
           unit: attr.unit || defaultUnit,
+          tap_action: attr.tap_action,
+          double_tap_action: attr.double_tap_action,
+          hold_action: attr.hold_action,
         });
       })
       .filter(Boolean)
@@ -286,6 +293,9 @@ class FilamentCard extends HTMLElement {
           vendor: vendor || "",
           color,
           unit: item.unit || defaultUnit,
+          tap_action: item.tap_action,
+          double_tap_action: item.double_tap_action,
+          hold_action: item.hold_action,
         });
       })
       .filter(Boolean)
@@ -304,10 +314,52 @@ class FilamentCard extends HTMLElement {
   
     return this.getCustomAttributeItems();
   }
+  
+  getActionConfigsForItem(item) {
+    const entityId = item.entity_id;
+    const attr = item.state?.attributes || {};
+  
+    const spoolOverrides = this.config.spool_actions?.[entityId] || {};
+  
+    return {
+      tap:
+        attr.tap_action ||
+        item.tap_action ||
+        spoolOverrides.tap_action ||
+        this.config.tap_action,
+  
+      double_tap:
+        attr.double_tap_action ||
+        item.double_tap_action ||
+        spoolOverrides.double_tap_action ||
+        this.config.double_tap_action,
+  
+      hold:
+        attr.hold_action ||
+        item.hold_action ||
+        spoolOverrides.hold_action ||
+        this.config.hold_action,
+    };
+  }
 
-  createVirtualItem({ entity_id, value, max, name, group, vendor, color, unit }) {
+  createVirtualItem({
+    entity_id,
+    value,
+    max,
+    name,
+    group,
+    vendor,
+    color,
+    unit,
+    tap_action,
+    double_tap_action,
+    hold_action,
+  }) {
     return {
       entity_id,
+      tap_action,
+      double_tap_action,
+      hold_action,
       state: {
         state: String(value),
         attributes: {
@@ -320,6 +372,9 @@ class FilamentCard extends HTMLElement {
           filament_color_hex: color,
           archived: false,
           custom_unit: unit,
+          tap_action,
+          double_tap_action,
+          hold_action,
         },
       },
     };
@@ -376,15 +431,15 @@ class FilamentCard extends HTMLElement {
   }
   
   attachActionHandlers() {
-    const actionConfigs = {
-      tap: this.config.tap_action,
-      double_tap: this.config.double_tap_action,
-      hold: this.config.hold_action,
-    };
-  
     this.shadowRoot.querySelectorAll(".spool").forEach(element => {
       const entityId = element.dataset.entity;
       if (!entityId) return;
+  
+      const actionConfigs = this._actionConfigsByEntity?.[entityId] || {
+        tap: this.config.tap_action,
+        double_tap: this.config.double_tap_action,
+        hold: this.config.hold_action,
+      };
   
       element.addEventListener("click", event => {
         event.stopPropagation();
