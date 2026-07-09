@@ -17,6 +17,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
   static properties = {
     hass: { attribute: false },
     _config: { state: true },
+    _openSections: { state: true },
   };
 
   static styles = css`
@@ -115,13 +116,47 @@ class SpoolmanFilamentCardEditor extends LitElement {
       background: var(--error-color);
       color: var(--text-primary-color);
     }
+
+    .expandable-section {
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .expandable-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 500;
+      background: var(--secondary-background-color);
+    }
+    
+    .expandable-header:hover {
+      filter: brightness(1.03);
+    }
+    
+    .expandable-content {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+    }
+
   `;
 
   setConfig(config) {
     this._config = {
       ...DEFAULT_CONFIG,
       ...config,
-    };    
+    };
+    if (!this._openSections) {
+      this._openSections = {
+        groupTitleOverrides: false,
+      };
+    }
   }
 
   render() {
@@ -131,18 +166,77 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
     return html`
       <div class="editor">
-        ${this.renderGeneralSection(preset)}
-
-        ${preset === "spoolman" ? this.renderSpoolmanOptions() : ""}
-        ${preset === "custom_attributes" ? this.renderCustomAttributeOptions() : ""}
-        ${preset === "custom_entities" ? this.renderCustomEntityOptions() : ""}
-        ${preset === "custom_label" ? this.renderCustomLabelOptions() : ""}
-
-        ${this.renderAppearanceOptions()}
+        ${this.renderExpandableSection(
+          "general",
+          "General",
+          this.renderGeneralSection(preset),
+          true
+        )}
+    
+        ${preset === "spoolman"
+          ? this.renderSpoolmanOptions()
+          : ""}
+    
+        ${preset === "custom_attributes"
+          ? this.renderCustomAttributeOptions()
+          : ""}
+    
+        ${preset === "custom_entities"
+          ? this.renderCustomEntityOptions()
+          : ""}
+    
+        ${preset === "custom_label"
+          ? this.renderCustomLabelOptions()
+          : ""}
+    
+        ${this.renderExpandableSection(
+          "appearance",
+          "Appearance",
+          this.renderAppearanceOptions(),
+          true
+        )}
+    
+        ${this.renderExpandableSection(
+          "actions",
+          "Actions",
+          this.renderActionOptions(),
+          false
+        )}
       </div>
     `;
   }
 
+  toggleSection(section) {
+    this._openSections = {
+      ...(this._openSections || {}),
+      [section]: !this._openSections?.[section],
+    };
+  }
+  
+  renderExpandableSection(section, title, content, openByDefault = false) {
+    const isOpen = this._openSections?.[section] ?? openByDefault;
+  
+    return html`
+      <div class="expandable-section">
+        <div
+          class="expandable-header"
+          @click=${() => this.toggleSection(section)}
+        >
+          <span>${title}</span>
+          <ha-icon icon=${isOpen ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
+        </div>
+  
+        ${isOpen
+          ? html`
+              <div class="expandable-content">
+                ${content}
+              </div>
+            `
+          : ""}
+      </div>
+    `;
+  }
+  
   renderGeneralSection(preset) {
     return html`
       <div class="section-title">General</div>
@@ -404,23 +498,30 @@ class SpoolmanFilamentCardEditor extends LitElement {
     const groups = this.getAvailableGroups();
   
     if (!groups.length) {
-      return html`
-        <div class="section-title">Group Title Overrides</div>
-        ${this.renderHint(
-          "No groups found yet. Groups will appear here once matching entities are available."
-        )}
-      `;
+      return this.renderExpandableSection(
+        "groupTitleOverrides",
+        "Group Title Overrides",
+        html`
+          ${this.renderHint(
+            "No groups found yet. Groups will appear here once matching entities are available."
+          )}
+        `,
+        false
+      );
     }
   
-    return html`
-      <div class="section-title">Group Title Overrides</div>
-  
-      ${this.renderHint(
-        "Configure individual icons, colors and actions for specific group titles."
-      )}
-  
-      ${groups.map(group => this.renderGroupTitleOverride(group))}
-    `;
+    return this.renderExpandableSection(
+      "groupTitleOverrides",
+      "Group Title Overrides",
+      html`
+        ${this.renderHint(
+          "Configure individual icons, colors and actions for specific group titles."
+        )}
+    
+        ${groups.map(group => this.renderGroupTitleOverride(group))}
+      `,
+      false
+    );
   }
 
   getAvailableGroups() {
@@ -778,8 +879,7 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
   renderAppearanceOptions() {
     return html`
-      <div class="section-title">Appearance</div>
-
+      
       ${this.renderSelect(
         this._config.bar_direction || "vertical",
         "Bar direction",
@@ -814,13 +914,11 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
       ${this.renderSwitch("show_name", "Show name")}
 
-      ${this.renderActionOptions()}
     `;
   }
 
   renderActionOptions() {
     return html`
-      <div class="section-title">Actions</div>
   
       ${this.renderActionSelect("tap_action", "Tap action", "more-info")}
       ${this.renderActionSelect("double_tap_action", "Double tap action", "none")}
