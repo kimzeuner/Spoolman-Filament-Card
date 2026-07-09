@@ -152,6 +152,7 @@ class SpoolmanFilamentCard extends HTMLElement {
         ${content}
       </ha-card>
     `;
+    this.attachActionHandlers();
   }
 
   getItems() {
@@ -290,6 +291,78 @@ class SpoolmanFilamentCard extends HTMLElement {
     };
   }
 
+  fireHassAction(entityId, action) {
+    this.dispatchEvent(
+      new CustomEvent("hass-action", {
+        detail: {
+          config: {
+            entity: entityId,
+            tap_action: this.config.tap_action || { action: "more-info" },
+            double_tap_action: this.config.double_tap_action || { action: "none" },
+            hold_action: this.config.hold_action || { action: "none" },
+          },
+          action,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+  
+  handleTap(entityId) {
+    if (this._holdFired) {
+      this._holdFired = false;
+      return;
+    }
+  
+    clearTimeout(this._tapTimer);
+  
+    this._tapTimer = setTimeout(() => {
+      this.fireHassAction(entityId, "tap");
+    }, 250);
+  }
+  
+  handleDoubleTap(entityId) {
+    clearTimeout(this._tapTimer);
+    this.fireHassAction(entityId, "double_tap");
+  }
+  
+  handleHoldStart(entityId) {
+    this._holdFired = false;
+    clearTimeout(this._holdTimer);
+  
+    this._holdTimer = setTimeout(() => {
+      this._holdFired = true;
+      this.fireHassAction(entityId, "hold");
+    }, 500);
+  }
+  
+  handleHoldEnd() {
+    clearTimeout(this._holdTimer);
+  }
+  
+  attachActionHandlers() {
+    this.shadowRoot.querySelectorAll(".spool").forEach(element => {
+      const entityId = element.dataset.entity;
+      if (!entityId) return;
+  
+      element.addEventListener("click", event => {
+        event.stopPropagation();
+        this.handleTap(entityId);
+      });
+  
+      element.addEventListener("dblclick", event => {
+        event.stopPropagation();
+        this.handleDoubleTap(entityId);
+      });
+  
+      element.addEventListener("pointerdown", () => this.handleHoldStart(entityId));
+      element.addEventListener("pointerup", () => this.handleHoldEnd());
+      element.addEventListener("pointerleave", () => this.handleHoldEnd());
+      element.addEventListener("pointercancel", () => this.handleHoldEnd());
+    });
+  }
+  
   renderGrouped(items, dynamicMaxWeight) {
     let groups = [...new Set(items.map(item => getGroupValue(this.config, item)))];
     groups = sortGroups(this.config, groups, items);
