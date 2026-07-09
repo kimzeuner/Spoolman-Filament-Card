@@ -154,16 +154,22 @@ class SpoolmanFilamentCardEditor extends LitElement {
     };
     if (!this._openSections) {
       this._openSections = {
+        general: true,
+        preset: true,
+        grouping: false,
         groupTitleOverrides: false,
+        sorting: false,
+        appearance: false,
+        actions: false,
       };
     }
   }
 
   render() {
     if (!this._config) return html``;
-
+  
     const preset = this._config.preset || "spoolman";
-
+  
     return html`
       <div class="editor">
         ${this.renderExpandableSection(
@@ -172,30 +178,19 @@ class SpoolmanFilamentCardEditor extends LitElement {
           this.renderGeneralSection(preset),
           true
         )}
-    
-        ${preset === "spoolman"
-          ? this.renderSpoolmanOptions()
-          : ""}
-    
-        ${preset === "custom_attributes"
-          ? this.renderCustomAttributeOptions()
-          : ""}
-    
-        ${preset === "custom_entities"
-          ? this.renderCustomEntityOptions()
-          : ""}
-    
-        ${preset === "custom_label"
-          ? this.renderCustomLabelOptions()
-          : ""}
-    
+  
+        ${preset === "spoolman" ? this.renderSpoolmanOptions() : ""}
+        ${preset === "custom_attributes" ? this.renderCustomAttributeOptions() : ""}
+        ${preset === "custom_entities" ? this.renderCustomEntityOptions() : ""}
+        ${preset === "custom_label" ? this.renderCustomLabelOptions() : ""}
+  
         ${this.renderExpandableSection(
           "appearance",
           "Appearance",
           this.renderAppearanceOptions(),
           true
         )}
-    
+  
         ${this.renderExpandableSection(
           "actions",
           "Actions",
@@ -261,90 +256,112 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
   renderSpoolmanOptions() {
     return html`
-      <div class="section-title">Grouping</div>
-
-      ${this.renderSelect(
-        this._config.group_by || "material",
-        "Group by",
-        [
-          ["material", "Material"],
-          ["color", "Color"],
-          ["vendor", "Vendor"],
-          ["none", "Don't group"],
-        ],
-        value => this.updateConfigValue("group_by", value)
+      ${this.renderExpandableSection(
+        "grouping",
+        "Grouping",
+        html`
+          ${this.renderSelect(
+            this._config.group_by || "material",
+            "Group by",
+            [
+              ["material", "Material"],
+              ["color", "Color"],
+              ["vendor", "Vendor"],
+              ["none", "Don't group"],
+            ],
+            value => this.updateConfigValue("group_by", value)
+          )}
+  
+          ${this.renderGroupingDetails("Spool count")}
+          ${this.renderGroupTitleOverrides()}
+        `,
+        true
       )}
-
-      ${this.renderGroupingDetails("Spool count")}
-      ${this.renderGroupTitleOverrides()}
-
-      <div class="section-title">Sorting</div>
-
-      ${this.renderSelect(
-        this._config.sort_by || "remaining_weight",
-        "Sort by",
-        [
-          ["remaining_weight", "Remaining weight"],
-          ["filament_name", "Filament name"],
-          ["filament_material", "Material"],
-          ["filament_vendor_name", "Vendor"],
-          ["filament_color_hex", "Color"],
-        ],
-        value => this.updateConfigValue("sort_by", value)
+  
+      ${this.renderExpandableSection(
+        "sorting",
+        "Sorting",
+        html`
+          ${this.renderSelect(
+            this._config.sort_by || "remaining_weight",
+            "Sort by",
+            [
+              ["remaining_weight", "Remaining weight"],
+              ["filament_name", "Filament name"],
+              ["filament_material", "Material"],
+              ["filament_vendor_name", "Vendor"],
+              ["filament_color_hex", "Color"],
+            ],
+            value => this.updateConfigValue("sort_by", value)
+          )}
+  
+          ${this.renderSortDirection()}
+  
+          ${this.renderNumberField("max_weight", "Max weight fallback")}
+          ${this.renderHint("Used only if no filament weight is available.")}
+  
+          ${this.renderSwitch("hide_archived", "Hide archived spools")}
+          ${this.renderSwitch("use_filament_color", "Use filament color")}
+        `,
+        true
       )}
-
-      ${this.renderSortDirection()}
-
-      ${this.renderNumberField("max_weight", "Max weight fallback")}
-      ${this.renderHint("Used only if no filament weight is available.")}
-
-      ${this.renderSwitch("hide_archived", "Hide archived spools")}
-      ${this.renderSwitch("use_filament_color", "Use filament color")}
     `;
   }
 
   renderCustomAttributeOptions() {
     return html`
-      <div class="section-title">Custom Attributes</div>
-
-      ${this.renderEntityPicker(
-        this._config.custom_attribute_entities || [],
-        "Entities with attributes",
-        value => this.updateConfigValue("custom_attribute_entities", value),
+      ${this.renderExpandableSection(
+        "preset",
+        "Custom Attributes",
+        html`
+          ${this.renderEntityPicker(
+            this._config.custom_attribute_entities || [],
+            "Entities with attributes",
+            value => this.updateConfigValue("custom_attribute_entities", value),
+            true
+          )}
+  
+          ${this.renderHint(
+            "Each selected entity should provide attributes like group, vendor, color, max_value and unit."
+          )}
+  
+          ${this.renderCustomDefaults()}
+        `,
         true
       )}
-
-      ${this.renderHint(
-        "Each selected entity should provide attributes like group, vendor, color, max_value and unit."
-      )}
-
-      ${this.renderCustomDefaults()}
+  
       ${this.renderCustomSharedOptions()}
     `;
   }
 
   renderCustomEntityOptions() {
     const items = this._config.custom_items || [];
-
+  
     return html`
-      <div class="section-title">Custom Multiple Entities</div>
-
-      ${this.renderHint(
-        "Create one item per spool. Each item can use separate entities for value, max value, color, group and vendor."
+      ${this.renderExpandableSection(
+        "preset",
+        "Custom Multiple Entities",
+        html`
+          ${this.renderHint(
+            "Create one item per spool. Each item can use separate entities for value, max value, color, group and vendor."
+          )}
+  
+          ${items.map((item, index) => this.renderCustomItem(item, index))}
+  
+          <button
+            class="editor-button"
+            type="button"
+            @click=${() => this.addCustomItem()}
+          >
+            <ha-icon icon="mdi:plus"></ha-icon>
+            Add spool
+          </button>
+  
+          ${this.renderCustomDefaults()}
+        `,
+        true
       )}
-
-      ${items.map((item, index) => this.renderCustomItem(item, index))}
-
-      <button
-        class="editor-button"
-        type="button"
-        @click=${() => this.addCustomItem()}
-      >
-        <ha-icon icon="mdi:plus"></ha-icon>
-        Add spool
-      </button>
-
-      ${this.renderCustomDefaults()}
+  
       ${this.renderCustomSharedOptions()}
     `;
   }
@@ -416,19 +433,25 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
   renderCustomLabelOptions() {
     return html`
-      <div class="section-title">Custom HA Label</div>
-
-      ${this.renderHint(
-        "All entities with the selected Home Assistant label will be used automatically. They should provide the same attributes as Custom Attributes."
+      ${this.renderExpandableSection(
+        "preset",
+        "Custom HA Label",
+        html`
+          ${this.renderHint(
+            "All entities with the selected Home Assistant label will be used automatically. They should provide the same attributes as Custom Attributes."
+          )}
+  
+          ${this.renderLabelPicker(
+            this._config.custom_label_id || "",
+            "HA Label",
+            value => this.updateConfigValue("custom_label_id", value)
+          )}
+  
+          ${this.renderCustomDefaults()}
+        `,
+        true
       )}
-
-      ${this.renderLabelPicker(
-        this._config.custom_label_id || "",
-        "HA Label",
-        value => this.updateConfigValue("custom_label_id", value)
-      )}
-
-      ${this.renderCustomDefaults()}
+  
       ${this.renderCustomSharedOptions()}
     `;
   }
@@ -453,42 +476,51 @@ class SpoolmanFilamentCardEditor extends LitElement {
 
   renderCustomSharedOptions() {
     return html`
-      <div class="section-title">Grouping</div>
-
-      ${this.renderSelect(
-        this._config.group_by || "material",
-        "Group by",
-        [
-          ["material", "Group"],
-          ["color", "Color"],
-          ["vendor", "Vendor"],
-          ["none", "Don't group"],
-        ],
-        value => this.updateConfigValue("group_by", value)
+      ${this.renderExpandableSection(
+        "grouping",
+        "Grouping",
+        html`
+          ${this.renderSelect(
+            this._config.group_by || "material",
+            "Group by",
+            [
+              ["material", "Group"],
+              ["color", "Color"],
+              ["vendor", "Vendor"],
+              ["none", "Don't group"],
+            ],
+            value => this.updateConfigValue("group_by", value)
+          )}
+  
+          ${this.renderGroupingDetails("Item count")}
+          ${this.renderGroupTitleOverrides()}
+        `,
+        true
       )}
-
-      ${this.renderGroupingDetails("Item count")}
-
-      ${this.renderGroupTitleOverrides()}
-
-      <div class="section-title">Sorting</div>
-
-      ${this.renderSelect(
-        this._config.sort_by || "remaining_weight",
-        "Sort by",
-        [
-          ["remaining_weight", "Value"],
-          ["filament_name", "Name"],
-          ["filament_material", "Group"],
-          ["filament_vendor_name", "Vendor"],
-          ["filament_color_hex", "Color"],
-        ],
-        value => this.updateConfigValue("sort_by", value)
+  
+      ${this.renderExpandableSection(
+        "sorting",
+        "Sorting",
+        html`
+          ${this.renderSelect(
+            this._config.sort_by || "remaining_weight",
+            "Sort by",
+            [
+              ["remaining_weight", "Value"],
+              ["filament_name", "Name"],
+              ["filament_material", "Group"],
+              ["filament_vendor_name", "Vendor"],
+              ["filament_color_hex", "Color"],
+            ],
+            value => this.updateConfigValue("sort_by", value)
+          )}
+  
+          ${this.renderSortDirection()}
+  
+          ${this.renderSwitch("use_filament_color", "Use item color")}
+        `,
+        true
       )}
-
-      ${this.renderSortDirection()}
-
-      ${this.renderSwitch("use_filament_color", "Use item color")}
     `;
   }
 
