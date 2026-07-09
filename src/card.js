@@ -480,5 +480,5 @@ class SpoolmanFilamentCard extends HTMLElement {
 }
 
 if (!customElements.get(CARD_TYPE)) {
-  customElements.define(CARD_TYPE, SpoolmanFilamentCard);
+  customElements.define(CARD_TYPE, FilamentCard);
 }
